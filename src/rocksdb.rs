@@ -3018,7 +3018,24 @@ mod test {
     #[test]
     fn multi_get_test() {
         let path = TempDir::new("_rust_rocksdb_multigettest").expect("");
-        let db = DB::open_default(path.path().to_str().unwrap()).unwrap();
+        let mut cfs = ["default", "cf1", "cf2", "cf3"];
+        let db = {
+            let mut cfs_opts = vec![];
+            for _ in 0..cfs.len() {
+                cfs_opts.push(ColumnFamilyOptions::new());
+            }
+
+            let mut opts = DBOptions::new();
+            opts.create_if_missing(true);
+            let mut db = DB::open(opts, path.path().to_str().unwrap()).unwrap();
+            for (cf, cf_opts) in cfs.iter().zip(cfs_opts) {
+                if *cf == "default" {
+                    continue;
+                }
+                db.create_cf((*cf, cf_opts)).unwrap();
+            }
+            db
+        };
 
         db.put(b"a", b"a1").unwrap();
         db.put(b"b", b"b1").unwrap();
@@ -3029,6 +3046,20 @@ mod test {
 
         db.single_delete(b"b").unwrap();
         let values = db.multi_get(vec![b"a", b"b"]).unwrap();
+        assert_eq!(values[0].as_ref().unwrap().to_utf8().unwrap(), "a1");
+        assert!(values[1].is_none());
+
+        let handle = db.cf_handle("cf1").unwrap();
+
+        db.put_cf(handle, b"a", b"a1").unwrap();
+        db.put_cf(handle, b"b", b"b1").unwrap();
+
+        let values = db.multi_get_cf(handle, vec![b"a", b"b"]).unwrap();
+        assert_eq!(values[0].as_ref().unwrap().to_utf8().unwrap(), "a1");
+        assert_eq!(values[1].as_ref().unwrap().to_utf8().unwrap(), "b1");
+
+        db.single_delete_cf(handle, b"b").unwrap();
+        let values = db.multi_get_cf(handle, vec![b"a", b"b"]).unwrap();
         assert_eq!(values[0].as_ref().unwrap().to_utf8().unwrap(), "a1");
         assert!(values[1].is_none());
     }

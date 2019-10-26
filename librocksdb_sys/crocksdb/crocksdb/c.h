@@ -371,7 +371,7 @@ extern C_ROCKSDB_LIBRARY_API void crocksdb_multi_get(
 
 extern C_ROCKSDB_LIBRARY_API void crocksdb_multi_get_cf(
     crocksdb_t* db, const crocksdb_readoptions_t* options,
-    const crocksdb_column_family_handle_t* const* column_families,
+    const crocksdb_column_family_handle_t* column_family,
     size_t num_keys, const char* const* keys_list,
     const size_t* keys_list_sizes, crocksdb_pinnableslice_t** values_list,
     char** errs);

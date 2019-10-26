@@ -1106,7 +1106,7 @@ void crocksdb_multi_get(
 void crocksdb_multi_get_cf(
     crocksdb_t* db,
     const crocksdb_readoptions_t* options,
-    const crocksdb_column_family_handle_t* const* column_families,
+    const crocksdb_column_family_handle_t* column_family,
     size_t num_keys, const char* const* keys_list,
     const size_t* keys_list_sizes,
     crocksdb_pinnableslice_t** values_list,
@@ -1115,7 +1115,7 @@ void crocksdb_multi_get_cf(
   std::vector<ColumnFamilyHandle*> cfs(num_keys);
   for (size_t i = 0; i < num_keys; i++) {
     keys[i] = Slice(keys_list[i], keys_list_sizes[i]);
-    cfs[i] = column_families[i]->rep;
+    cfs[i] = column_family->rep;
   }
   std::vector<std::string> values(num_keys);
   std::vector<Status> statuses = db->rep->MultiGet(options->rep, cfs, keys, &values);
