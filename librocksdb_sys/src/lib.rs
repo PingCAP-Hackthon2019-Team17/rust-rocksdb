@@ -1492,6 +1492,44 @@ extern "C" {
         kLen: size_t,
         err: *mut *mut c_char,
     ) -> *mut DBPinnableSlice;
+    // pub fn crocksdb_multi_get_pinned(
+    //     db: *mut DBInstance,
+    //     readopts: *const DBReadOptions,
+    //     num_keys: size_t,
+    //     keys: *const u8,
+    //     kLens: size_t,
+    //     values: *mut DBPinnableSlice,
+    //     errs: *mut *mut c_char,
+    // ) -> *mut DBPinnableSlice;
+    // pub fn crocksdb_multi_get_pinned_cf(
+    //     db: *mut DBInstance,
+    //     readopts: *const DBReadOptions,
+    //     cf_handle: *mut DBCFHandle,
+    //     num_keys: size_t,
+    //     keys: *const u8,
+    //     kLens: size_t,
+    //     values: *mut DBPinnableSlice,
+    //     errs: *mut *mut c_char,
+    // ) -> *mut DBPinnableSlice;
+    pub fn crocksdb_multi_get(
+        db: *mut DBInstance,
+        readopts: *const DBReadOptions,
+        num_keys: size_t,
+        keys: *const *const uint8_t,
+        kLens: *const size_t,
+        values: *mut *mut DBPinnableSlice,
+        errs: *mut *mut c_char,
+    ) -> *mut DBPinnableSlice;
+    pub fn crocksdb_multi_get_cf(
+        db: *mut DBInstance,
+        readopts: *const DBReadOptions,
+        cf_handle: *mut DBCFHandle,
+        num_keys: size_t,
+        keys: *const *const uint8_t,
+        kLens: *const size_t,
+        values: *mut *mut DBPinnableSlice,
+        errs: *mut *mut c_char,
+    ) -> *mut DBPinnableSlice;
     pub fn crocksdb_pinnableslice_value(
         s: *const DBPinnableSlice,
         valLen: *mut size_t,

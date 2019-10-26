@@ -1004,12 +1004,82 @@ char* crocksdb_get_cf(
   return result;
 }
 
+// void crocksdb_multi_get_pinned(
+//     crocksdb_t* db,
+//     const crocksdb_readoptions_t* options,
+//     size_t num_keys, const char* const* keys_list,
+//     const size_t* keys_list_sizes,
+//     crocksdb_pinnableslice_t** values_list,
+//     char** errs) {
+//   std::vector<Slice> keys(num_keys);
+//   for (size_t i = 0; i < num_keys; i++) {
+//     keys[i] = Slice(keys_list[i], keys_list_sizes[i]);
+//   }
+ 
+//   std::vector<PinnableSlice> res(num_keys);
+//   for (size_t i = 0; i < num_keys; i++) {
+//     values_list[i] = new (crocksdb_pinnableslice_t);
+//     res[i] = &values_list[i]->rep;
+//   }
+//   std::vector<Status> statuses(num_keys);
+//   db->rep->MultiGet(options->rep, db->rep->DefaultColumnFamily(), num_keys, &keys[0], &res[0], &statuses, true);
+//   for (size_t i = 0; i < num_keys; i++) {
+//     if (statuses[i].ok()) {
+//       errs[i] = nullptr;
+//     } else {
+//       delete values_list[i];
+//       values_list[i] = nullptr;
+//       if (!statuses[i].IsNotFound()) {
+//         errs[i] = strdup(statuses[i].ToString().c_str());
+//       } else {
+//         errs[i] = nullptr;
+//       }
+//     }
+//   }
+// }
+
+// void crocksdb_multi_get_pinned_cf(
+//     crocksdb_t* db,
+//     const crocksdb_readoptions_t* options,
+//     const crocksdb_column_family_handle_t* const* column_families,
+//     size_t num_keys, const char* const* keys_list,
+//     const size_t* keys_list_sizes,
+//     crocksdb_pinnableslice_t** values_list,
+//     char** errs) {
+//   std::vector<Slice> keys(num_keys);
+//   std::vector<ColumnFamilyHandle*> cfs(num_keys);
+//   for (size_t i = 0; i < num_keys; i++) {
+//     keys[i] = Slice(keys_list[i], keys_list_sizes[i]);
+//     cfs[i] = column_families[i]->rep;
+//   }
+//   std::vector<PinnableSlice*> res(num_keys);
+//   for (size_t i = 0; i < num_keys; i++) {
+//     values_list[i] = new (crocksdb_pinnableslice_t);
+//     res[i] = &values_list[i]->rep;
+//   }
+//   std::vector<Status> statuses(num_keys);
+//   db->rep->MultiGet(options->rep, cfs, num_keys, &keys[0], &res[0], &statuses, true);
+//   for (size_t i = 0; i < num_keys; i++) {
+//     if (statuses[i].ok()) {
+//       errs[i] = nullptr;
+//     } else {
+//       delete values_list[i];
+//       values_list[i] = nullptr;
+//       if (!statuses[i].IsNotFound()) {
+//         errs[i] = strdup(statuses[i].ToString().c_str());
+//       } else {
+//         errs[i] = nullptr;
+//       }
+//     }
+//   }
+// }
+
 void crocksdb_multi_get(
     crocksdb_t* db,
     const crocksdb_readoptions_t* options,
     size_t num_keys, const char* const* keys_list,
     const size_t* keys_list_sizes,
-    char** values_list, size_t* values_list_sizes,
+    crocksdb_pinnableslice_t** values_list,
     char** errs) {
   std::vector<Slice> keys(num_keys);
   for (size_t i = 0; i < num_keys; i++) {
@@ -1019,12 +1089,11 @@ void crocksdb_multi_get(
   std::vector<Status> statuses = db->rep->MultiGet(options->rep, keys, &values);
   for (size_t i = 0; i < num_keys; i++) {
     if (statuses[i].ok()) {
-      values_list[i] = CopyString(values[i]);
-      values_list_sizes[i] = values[i].size();
+      values_list[i] = new (crocksdb_pinnableslice_t);
+      values_list[i]->rep.PinSelf(Slice(values[i]));
       errs[i] = nullptr;
     } else {
       values_list[i] = nullptr;
-      values_list_sizes[i] = 0;
       if (!statuses[i].IsNotFound()) {
         errs[i] = strdup(statuses[i].ToString().c_str());
       } else {
@@ -1040,7 +1109,7 @@ void crocksdb_multi_get_cf(
     const crocksdb_column_family_handle_t* const* column_families,
     size_t num_keys, const char* const* keys_list,
     const size_t* keys_list_sizes,
-    char** values_list, size_t* values_list_sizes,
+    crocksdb_pinnableslice_t** values_list,
     char** errs) {
   std::vector<Slice> keys(num_keys);
   std::vector<ColumnFamilyHandle*> cfs(num_keys);
@@ -1052,12 +1121,11 @@ void crocksdb_multi_get_cf(
   std::vector<Status> statuses = db->rep->MultiGet(options->rep, cfs, keys, &values);
   for (size_t i = 0; i < num_keys; i++) {
     if (statuses[i].ok()) {
-      values_list[i] = CopyString(values[i]);
-      values_list_sizes[i] = values[i].size();
+      values_list[i] = new (crocksdb_pinnableslice_t);
+      values_list[i]->rep.PinSelf(Slice(values[i]));
       errs[i] = nullptr;
     } else {
       values_list[i] = nullptr;
-      values_list_sizes[i] = 0;
       if (!statuses[i].IsNotFound()) {
         errs[i] = strdup(statuses[i].ToString().c_str());
       } else {

@@ -394,6 +394,28 @@ impl<D: Deref<Target = DB>> Snapshot<D> {
         self.db.get_cf_opt(cf, key, &readopts)
     }
 
+    pub fn multi_get(&self, keys: Vec<&[u8]>) -> Result<Vec<Option<DBVector>>, String> {
+        let mut readopts = ReadOptions::new();
+        unsafe {
+            readopts.set_snapshot(&self.snap);
+        }
+
+        self.db.multi_get_opt(keys, &readopts)
+    }
+
+    pub fn multi_get_cf(
+        &self,
+        cf: &CFHandle,
+        keys: Vec<&[u8]>,
+    ) -> Result<Vec<Option<DBVector>>, String> {
+        let mut readopts = ReadOptions::new();
+        unsafe {
+            readopts.set_snapshot(&self.snap);
+        }
+
+        self.db.multi_get_cf_opt(cf, keys, &readopts)
+    }
+
     /// Get the snapshot's sequence number.
     pub fn get_sequence_number(&self) -> u64 {
         unsafe { crocksdb_ffi::crocksdb_get_snapshot_sequence_number(self.snap.get_inner()) }
@@ -798,6 +820,110 @@ impl DB {
 
     pub fn get_cf(&self, cf: &CFHandle, key: &[u8]) -> Result<Option<DBVector>, String> {
         self.get_cf_opt(cf, key, &ReadOptions::new())
+    }
+
+    pub fn multi_get_opt(
+        &self,
+        keys: Vec<&[u8]>,
+        readopts: &ReadOptions,
+    ) -> Result<Vec<Option<DBVector>>, String> {
+        let num_keys = keys.len();
+        let keys_list_sizes: Vec<_> = keys.iter().map(|k| k.len() as size_t).collect();
+        let keys_list: Vec<*const _> = keys.into_iter().map(|k| k.as_ptr()).collect();
+
+        let mut values = vec![ptr::null_mut(); num_keys];
+        let mut errs = vec![ptr::null_mut(); num_keys];
+
+        unsafe {
+            crocksdb_ffi::crocksdb_multi_get(
+                self.inner,
+                readopts.get_inner(),
+                num_keys as size_t,
+                keys_list.as_ptr(),
+                keys_list_sizes.as_ptr(),
+                values.as_mut_ptr(),
+                errs.as_mut_ptr(),
+            );
+
+            for err in errs {
+                if !err.is_null() {
+                    values
+                        .into_iter()
+                        .for_each(|v| crocksdb_ffi::crocksdb_pinnableslice_destroy(v));
+                    return Err(crocksdb_ffi::error_message(err));
+                }
+            }
+        }
+
+        Ok(values
+            .into_iter()
+            .map(|v| {
+                if v.is_null() {
+                    None
+                } else {
+                    Some(DBVector::from_pinned_slice(v))
+                }
+            })
+            .collect())
+    }
+
+    pub fn multi_get(&self, keys: Vec<&[u8]>) -> Result<Vec<Option<DBVector>>, String> {
+        self.multi_get_opt(keys, &ReadOptions::new())
+    }
+
+    pub fn multi_get_cf_opt(
+        &self,
+        cf: &CFHandle,
+        keys: Vec<&[u8]>,
+        readopts: &ReadOptions,
+    ) -> Result<Vec<Option<DBVector>>, String> {
+        let num_keys = keys.len();
+        let keys_list_sizes: Vec<_> = keys.iter().map(|k| k.len() as size_t).collect();
+        let keys_list: Vec<*const _> = keys.into_iter().map(|k| k.as_ptr()).collect();
+
+        let mut values = vec![ptr::null_mut(); num_keys];
+        let mut errs = vec![ptr::null_mut(); num_keys];
+
+        unsafe {
+            crocksdb_ffi::crocksdb_multi_get_cf(
+                self.inner,
+                readopts.get_inner(),
+                cf.inner,
+                num_keys as size_t,
+                keys_list.as_ptr(),
+                keys_list_sizes.as_ptr(),
+                values.as_mut_ptr(),
+                errs.as_mut_ptr(),
+            );
+
+            for err in errs {
+                if !err.is_null() {
+                    values
+                        .into_iter()
+                        .for_each(|v| crocksdb_ffi::crocksdb_pinnableslice_destroy(v));
+                    return Err(crocksdb_ffi::error_message(err));
+                }
+            }
+        }
+
+        Ok(values
+            .into_iter()
+            .map(|v| {
+                if v.is_null() {
+                    None
+                } else {
+                    Some(DBVector::from_pinned_slice(v))
+                }
+            })
+            .collect())
+    }
+
+    pub fn multi_get_cf(
+        &self,
+        cf: &CFHandle,
+        keys: Vec<&[u8]>,
+    ) -> Result<Vec<Option<DBVector>>, String> {
+        self.multi_get_cf_opt(cf, keys, &ReadOptions::new())
     }
 
     pub fn create_cf<'a, T>(&mut self, cfd: T) -> Result<&CFHandle, String>
@@ -2887,6 +3013,24 @@ mod test {
             let name = entry.file_name();
             assert!(name.to_str().unwrap().find("LOG").is_none());
         }
+    }
+
+    #[test]
+    fn multi_get_test() {
+        let path = TempDir::new("_rust_rocksdb_multigettest").expect("");
+        let db = DB::open_default(path.path().to_str().unwrap()).unwrap();
+
+        db.put(b"a", b"a1").unwrap();
+        db.put(b"b", b"b1").unwrap();
+
+        let values = db.multi_get(vec![b"a", b"b"]).unwrap();
+        assert_eq!(values[0].as_ref().unwrap().to_utf8().unwrap(), "a1");
+        assert_eq!(values[1].as_ref().unwrap().to_utf8().unwrap(), "b1");
+
+        db.single_delete(b"b").unwrap();
+        let values = db.multi_get(vec![b"a", b"b"]).unwrap();
+        assert_eq!(values[0].as_ref().unwrap().to_utf8().unwrap(), "a1");
+        assert!(values[1].is_none());
     }
 
     #[test]

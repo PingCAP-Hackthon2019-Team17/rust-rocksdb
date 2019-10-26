@@ -47,7 +47,6 @@ fn main() {
         .define("WITH_TITAN_TESTS", "OFF")
         .define("WITH_TITAN_TOOLS", "OFF")
         .build_target("titan")
-        .very_verbose(true)
         .build();
     println!("cargo:rustc-link-search=native={}/build", dst.display());
     println!("cargo:rustc-link-lib=static=titan");

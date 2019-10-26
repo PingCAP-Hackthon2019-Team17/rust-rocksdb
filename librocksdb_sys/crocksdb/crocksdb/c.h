@@ -367,14 +367,14 @@ extern C_ROCKSDB_LIBRARY_API char* crocksdb_get_cf(
 extern C_ROCKSDB_LIBRARY_API void crocksdb_multi_get(
     crocksdb_t* db, const crocksdb_readoptions_t* options, size_t num_keys,
     const char* const* keys_list, const size_t* keys_list_sizes,
-    char** values_list, size_t* values_list_sizes, char** errs);
+    crocksdb_pinnableslice_t** values_list, char** errs);
 
 extern C_ROCKSDB_LIBRARY_API void crocksdb_multi_get_cf(
     crocksdb_t* db, const crocksdb_readoptions_t* options,
     const crocksdb_column_family_handle_t* const* column_families,
     size_t num_keys, const char* const* keys_list,
-    const size_t* keys_list_sizes, char** values_list,
-    size_t* values_list_sizes, char** errs);
+    const size_t* keys_list_sizes, crocksdb_pinnableslice_t** values_list,
+    char** errs);
 
 extern C_ROCKSDB_LIBRARY_API crocksdb_iterator_t* crocksdb_create_iterator(
     crocksdb_t* db, const crocksdb_readoptions_t* options);
@@ -1639,6 +1639,23 @@ extern C_ROCKSDB_LIBRARY_API crocksdb_pinnableslice_t* crocksdb_get_pinned_cf(
     crocksdb_t* db, const crocksdb_readoptions_t* options,
     crocksdb_column_family_handle_t* column_family, const char* key,
     size_t keylen, char** errptr);
+
+// extern C_ROCKSDB_LIBRARY_API void crocksdb_multi_get_pinned(
+//     crocksdb_t* db,
+//     const crocksdb_readoptions_t* options,
+//     size_t num_keys, const char* const* keys_list,
+//     const size_t* keys_list_sizes,
+//     crocksdb_pinnableslice_t** values_list,
+//     char** errs);
+
+// extern C_ROCKSDB_LIBRARY_API void crocksdb_multi_get_pinned_cf(
+//     crocksdb_t* db,
+//     const crocksdb_readoptions_t* options,
+//     const crocksdb_column_family_handle_t* const* column_families,
+//     size_t num_keys, const char* const* keys_list,
+//     const size_t* keys_list_sizes,
+//     crocksdb_pinnableslice_t** values_list,
+//     char** errs);
 extern C_ROCKSDB_LIBRARY_API void crocksdb_pinnableslice_destroy(
     crocksdb_pinnableslice_t* v);
 extern C_ROCKSDB_LIBRARY_API const char* crocksdb_pinnableslice_value(
