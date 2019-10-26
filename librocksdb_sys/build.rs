@@ -113,7 +113,6 @@ fn build_rocksdb() -> Build {
         .define("WITH_TESTS", "OFF")
         .define("WITH_TOOLS", "OFF")
         .build_target("rocksdb")
-        .very_verbose(true)
         .build();
     let build_dir = format!("{}/build", dst.display());
     let mut build = Build::new();
@@ -153,5 +152,7 @@ fn build_rocksdb() -> Build {
     println!("cargo:rustc-link-lib=static=lz4");
     println!("cargo:rustc-link-lib=static=zstd");
     println!("cargo:rustc-link-lib=static=snappy");
+    println!("cargo:rustc-link-search=native=/lib");
+    println!("cargo:rustc-link-lib=static=uring");
     build
 }
