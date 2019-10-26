@@ -1,7 +1,7 @@
 [submodule "rocksdb"]
 	path = librocksdb_sys/rocksdb
-	url = https://github.com/yiwu-arbug/rocksdb.git
-	branch = rocks_uring
+	url = https://github.com/Connor1996/rocksdb.git
+	branch = multi-read
 [submodule "titan"]
 	path = librocksdb_sys/libtitan_sys/titan
 	url = https://github.com/pingcap/titan.git
