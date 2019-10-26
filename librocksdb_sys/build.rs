@@ -117,6 +117,8 @@ fn build_rocksdb() -> Build {
         .build();
     let build_dir = format!("{}/build", dst.display());
     let mut build = Build::new();
+
+    build.define("ROCKSDB_IOURING_PRESENT", None);
     if cfg!(target_os = "windows") {
         let profile = match &*env::var("PROFILE").unwrap_or("debug".to_owned()) {
             "bench" | "release" => "Release",
